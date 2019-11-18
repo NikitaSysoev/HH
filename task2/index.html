@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>task-2</title>
+  </head>
+  <body>
+    <script>
+      function allCombinations() {
+        const result = [];
+        const permute = (arr, m = []) => {
+          if (arr.length === 0) {
+            result.push(m);
+          } else {
+            for (let i = 0; i < arr.length; i++) {
+              const current = [...arr];
+              const next = current.splice(i, 1);
+              permute(current, m.concat(next));
+            }
+          }
+        };
+        permute([1, 2, 3, 4, 5, 6]);
+        return result;
+      }
+
+      function puzzleReady(puzzle) {
+        return puzzle.reduce(
+          (acc, row) => acc && row.reduce((a, i) => a && i.length === 1, true),
+          true
+        );
+      }
+
+      function getRowFromPuzzleByClueIndex(clueIndex, puzzle) {
+        // Gets row from puzzle
+        let retval = [];
+        let row;
+        let column;
+        let deltaRow = 0;
+        let deltaColumn = 0;
+        if (clueIndex < 6) {
+          column = clueIndex;
+          row = 0;
+          deltaRow = 1;
+        } else if (clueIndex < 12) {
+          column = 5;
+          row = clueIndex - 6;
+          deltaColumn = -1;
+        } else if (clueIndex < 18) {
+          column = 17 - clueIndex;
+          row = 5;
+          deltaRow = -1;
+        } else {
+          column = 0;
+          row = 23 - clueIndex;
+          deltaColumn = 1;
+        }
+        for (let i = 0; i < 6; i++) {
+          retval.push(puzzle[row][column].slice());
+          row += deltaRow;
+          column += deltaColumn;
+        }
+        return retval;
+      }
+
+      function rowClue(heights) {
+        let currentMax = 0;
+        let clue = 0;
+        for (let i = 0; i < heights.length; i++) {
+          if (heights[i] > currentMax) {
+            currentMax = heights[i];
+            clue++;
+          }
+        }
+        return clue;
+      }
+
+      function updateClue(row, allHeights) {
+        let clues = allHeights
+          .filter(permutation =>
+            permutation.reduce((acc, val, idx) => acc && row[idx].includes(val), true)
+          )
+          .map(permutation => rowClue(permutation));
+        if (clues.reduce((acc, curr) => acc && curr === clues[0], true)) {
+          return clues[0];
+        }
+        return 0;
+      }
+
+      function solveRow(clue, possibleHeights, allHeights) {
+        if (!clue) return possibleHeights;
+        return allHeights
+          .filter(permutation =>
+            permutation.reduce((acc, val, idx) => acc && possibleHeights[idx].includes(val), true)
+          ) // Filter permutations
+          .filter(arr => rowClue(arr) === clue) // Filter with right clue
+          .reduce((acc, currArr) => {
+            return acc.map((item, idx) => item.add(currArr[idx]));
+          }, new Array(6).fill().map(i => new Set()))
+          .map(item => [...item].sort()); // Merge solutions
+      }
+
+      function mergeSolutionBackToPuzzle(clueIndex, solution, puzzle) {
+        // Gives back the new puzzle
+        let retPuzzle = puzzle;
+        let row;
+        let column;
+        let deltaRow = 0;
+        let deltaColumn = 0;
+        if (clueIndex < 6) {
+          column = clueIndex;
+          row = 0;
+          deltaRow = 1;
+        } else if (clueIndex < 12) {
+          column = 5;
+          row = clueIndex - 6;
+          deltaColumn = -1;
+        } else if (clueIndex < 18) {
+          column = 17 - clueIndex;
+          row = 5;
+          deltaRow = -1;
+        } else {
+          column = 0;
+          row = 23 - clueIndex;
+          deltaColumn = 1;
+        }
+        for (let i = 0; i < 6; i++) {
+          retPuzzle[row][column] = retPuzzle[row][column].filter(item =>
+            solution[i].includes(item)
+          );
+          row += deltaRow;
+          column += deltaColumn;
+        }
+        return retPuzzle;
+      }
+
+      function solvePuzzle(clues) {
+        const allHeights = allCombinations();
+        const emptyArray = new Array(6).fill();
+        const row = emptyArray.map(item => [1, 2, 3, 4, 5, 6]);
+        let puzzle = emptyArray.map(item => [...row]);
+        while (!puzzleReady(puzzle)) {
+          clues.forEach((clue, clueIdx) => {
+            let currentRow = getRowFromPuzzleByClueIndex(clueIdx, puzzle);
+            if (!clue) {
+              clues[clueIdx] = updateClue(currentRow, allHeights);
+            }
+            let solution = solveRow(clue, currentRow, allHeights);
+            puzzle = mergeSolutionBackToPuzzle(clueIdx, solution, puzzle);
+          });
+        }
+        return puzzle.map(row => row.map(col => col[0])).reduce((acc, item) => acc.concat(item));
+      }
+
+      function calculate(line) {
+        const array = line.split(',').map(Number);
+        const result = solvePuzzle(array).join(',');
+        return result;
+      }
+
+      console.log(calculate('3,2,2,3,2,1,1,2,3,3,2,2,5,1,2,2,4,3,3,2,1,2,2,4'));
+      console.log(calculate('0,0,0,2,2,0,0,0,0,6,3,0,0,4,0,0,0,0,4,4,0,3,0,0'));
+    </script>
+  </body>
+</html>
